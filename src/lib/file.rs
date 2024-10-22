@@ -1,4 +1,4 @@
-use std::{fs, path::MAIN_SEPARATOR};
+use std::{env, fs, path::MAIN_SEPARATOR};
 
 use crate::configuration::TemplateFileParametersConf;
 
@@ -40,7 +40,23 @@ pub fn generate_from_template<S: ToString>(
     for parameter in parameters {
         let TemplateFileParametersConf { name, value } = parameter;
         let template: String = format!("{{{{{}}}}}", &name);
-        result = result.replace(&template, value);
+        if value.starts_with("ENV_VAR:") {
+            let env_key = value.strip_prefix("ENV_VAR:").unwrap_or("");
+            let env_value = match env::var(env_key) {
+                Ok(res) => res,
+                Err(err) => {
+                    println!(
+                        "Could not find the environment variables \"{}\" \nError: {}",
+                        env_key,
+                        err.to_string()
+                    );
+                    "".to_string()
+                }
+            };
+            result = result.replace(&template, &env_value);
+        } else {
+            result = result.replace(&template, value);
+        }
     }
     Ok(result)
 }

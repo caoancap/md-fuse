@@ -22,11 +22,11 @@ pub fn generate_text<S: ToString>(folder: &S, inputs: &Vec<S>) -> Result<String,
 
 pub fn generate_from_template<S: ToString>(
     folder: &S,
-    input: &S,
+    path: &S,
     parameters: &Vec<TemplateFileParametersConf>,
 ) -> Result<String, String> {
     let mut result: String;
-    let full_path = parse_folder(folder) + &input.to_string();
+    let full_path = parse_folder(folder) + &path.to_string();
     match fs::read_to_string(&full_path) {
         Ok(text) => result = text,
         Err(err) => {
@@ -40,8 +40,9 @@ pub fn generate_from_template<S: ToString>(
     for parameter in parameters {
         let TemplateFileParametersConf { name, value } = parameter;
         let template: String = format!("{{{{{}}}}}", &name);
-        if value.starts_with("ENV_VAR:") {
-            let env_key = value.strip_prefix("ENV_VAR:").unwrap_or("");
+        let prefix = "ENV_VAR:";
+        if value.starts_with(prefix) {
+            let env_key = value.strip_prefix(prefix).unwrap_or("");
             let env_value = match env::var(env_key) {
                 Ok(res) => res,
                 Err(err) => {
